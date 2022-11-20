@@ -43,7 +43,7 @@ jobs:
     steps:     
     - uses: actions/download-artifact@v2
     - run: mkdir jars           
-    - run: mv target/keycklok-email-authentication-jar-with-dependencies.jar jars/keycklok-email-authentication-jar-with-dependencies.jar
+    - run: mv /home/runner/work/keycloak-email-authenticator/keycloak-email-authenticator/keycklok-email-authentication-jar-with-dependencies/keycklok-email-authentication-jar-with-dependencies.jar jars/keycklok-email-authentication-jar-with-dependencies.jar
     - uses: mathieudutour/github-tag-action@v6.0
       id: tag_version
       with:
