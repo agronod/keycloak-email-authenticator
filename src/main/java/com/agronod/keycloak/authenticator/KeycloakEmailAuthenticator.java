@@ -14,18 +14,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import java.util.Random;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import sendinblue.ApiClient;
-import sendinblue.Configuration;
-import sendinblue.auth.*;
-import sibApi.TransactionalEmailsApi;
-import sibModel.CreateSmtpEmail;
-import sibModel.SendSmtpEmail;
-import sibModel.SendSmtpEmailSender;
-import sibModel.SendSmtpEmailTo;
-
 /**
  * Created by joris on 11/11/2016.
  */
@@ -55,7 +43,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
             logger.debug("Using nrOfDigits " + nrOfDigits);
 
-            String code = getCode(nrOfDigits);
+            String code = "1111"; // getCode(nrOfDigits);
 
             System.out.println(context.getAuthenticationSession().getAuthNote(
                     EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
@@ -184,51 +172,55 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         logger.debug("close called ...");
     }
 
-    private String getCode(long nrOfDigits) {
-        if (nrOfDigits < 1) {
-            throw new RuntimeException("Nr of digits must be bigger than 0");
-        }
+    // private String getCode(long nrOfDigits) {
+    // if (nrOfDigits < 1) {
+    // throw new RuntimeException("Nr of digits must be bigger than 0");
+    // }
 
-        double maxValue = Math.pow(10.0, nrOfDigits); // 10 ^ nrOfDigits;
-        Random r = new Random();
-        long code = (long) (r.nextFloat() * maxValue);
-        return Long.toString(code);
-    }
+    // double maxValue = Math.pow(10.0, nrOfDigits); // 10 ^ nrOfDigits;
+    // Random r = new Random();
+    // long code = (long) (r.nextFloat() * maxValue);
+    // return Long.toString(code);
+    // }
 
     private boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
-        // Send an email ----- Nedanstående kod ska ersättas med anrop till intert
-        // mail-api.
-        logger.debug("Sending " + code + "  to email address " + email);
+        return true;
+        // // Send an email ----- Nedanstående kod ska ersättas med anrop till intert
+        // // mail-api.
+        // logger.debug("Sending " + code + " to email address " + email);
 
-        ApiClient defaultClient = Configuration.getDefaultApiClient();
+        // ApiClient defaultClient = Configuration.getDefaultApiClient();
 
-        // Configure API key authorization: api-key
-        ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
-        apiKey.setApiKey("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");
+        // // Configure API key authorization: api-key
+        // ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
+        // apiKey.setApiKey("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");
 
-        TransactionalEmailsApi apiInstance = new TransactionalEmailsApi();
-        SendSmtpEmail sendSmtpEmail = new SendSmtpEmail(); // SendSmtpEmail | Values to send a transactional email
-        SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        sender.setEmail("christian@agronod.com");
-        sender.setName("noreply@agronod.com");
-        sendSmtpEmail.setSender(sender);
-        List<SendSmtpEmailTo> toList = new ArrayList<SendSmtpEmailTo>();
-        SendSmtpEmailTo to = new SendSmtpEmailTo();
-        to.setEmail(email);
-        toList.add(to);
-        sendSmtpEmail.setTo(toList);
-        sendSmtpEmail.setHtmlContent(
-                "<html><body><h1>This is my first transactional email kod." + code + " </h1></body></html>");
-        sendSmtpEmail.setSubject("Auth. code");
-        try {
-            CreateSmtpEmail result = apiInstance.sendTransacEmail(sendSmtpEmail);
-            logger.debug(result);
-            return true;
-        } catch (Exception e) {
-            logger.error("Exception when calling TransactionalEmailsApi#sendTransacEmail");
-            e.printStackTrace();
-            return false;
-        }
+        // TransactionalEmailsApi apiInstance = new TransactionalEmailsApi();
+        // SendSmtpEmail sendSmtpEmail = new SendSmtpEmail(); // SendSmtpEmail | Values
+        // to send a transactional email
+        // SendSmtpEmailSender sender = new SendSmtpEmailSender();
+        // sender.setEmail("christian@agronod.com");
+        // sender.setName("noreply@agronod.com");
+        // sendSmtpEmail.setSender(sender);
+        // List<SendSmtpEmailTo> toList = new ArrayList<SendSmtpEmailTo>();
+        // SendSmtpEmailTo to = new SendSmtpEmailTo();
+        // to.setEmail(email);
+        // toList.add(to);
+        // sendSmtpEmail.setTo(toList);
+        // sendSmtpEmail.setHtmlContent(
+        // "<html><body><h1>This is my first transactional email kod." + code + "
+        // </h1></body></html>");
+        // sendSmtpEmail.setSubject("Auth. code");
+        // try {
+        // CreateSmtpEmail result = apiInstance.sendTransacEmail(sendSmtpEmail);
+        // logger.debug(result);
+        // return true;
+        // } catch (Exception e) {
+        // logger.error("Exception when calling
+        // TransactionalEmailsApi#sendTransacEmail");
+        // e.printStackTrace();
+        // return false;
+        // }
 
     }
 

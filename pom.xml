@@ -8,47 +8,39 @@
     <artifactId>keycloak-email-authenticator</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
-
     <properties>
+        <java.version>11</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-core</artifactId>
-            <version>19.0.1</version>
+            <version>18.0.0</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-          <groupId>com.sendinblue</groupId>
-          <artifactId>sib-api-v3-sdk</artifactId>
-          <version>6.0.0</version>
-          <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi-private</artifactId>
-            <version>19.0.1</version>
+            <version>18.0.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi</artifactId>
-            <version>19.0.1</version>
+            <version>18.0.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.jboss.logging</groupId>
             <artifactId>jboss-logging</artifactId>
-            
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-services</artifactId>
-            <version>19.0.1</version>
+            <version>18.0.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
