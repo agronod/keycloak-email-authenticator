@@ -50,6 +50,8 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             if (context.getAuthenticationSession().getAuthNote(
                     EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null) {
                 // skip sending email code
+                Response challenge = context.form().createForm("mfa-validation.ftl");
+                context.challenge(challenge);
                 return;
             }
             storeCode(context, code);
