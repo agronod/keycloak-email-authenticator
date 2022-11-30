@@ -12,9 +12,11 @@ on:
   push:
     branches: 
     - main
+    - develop
   pull_request:
     branches: 
     - main
+    - develop
 
 jobs:
   build:
@@ -29,8 +31,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+    - name: Build with Maven prod
+      if: ${{ github.ref != 'refs/heads/main' }}
+      run: mvn -Pprod -B package --file pom.xm
+    - name: Build with Maven dev
+      if: ${{ github.ref != 'refs/heads/develop' }}
+      run: mvn -Pdev -B package --file pom.xm
     - uses: actions/upload-artifact@v2
       with:
         name: keycklok-email-authentication-jar-with-dependencies
