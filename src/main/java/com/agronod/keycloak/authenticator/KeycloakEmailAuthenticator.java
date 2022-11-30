@@ -2,6 +2,7 @@ package com.agronod.keycloak.authenticator;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.jboss.logging.Logger;
@@ -14,6 +15,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import com.agronod.keycloak.config.configLoader;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -58,13 +60,13 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
             System.out.println(context.getAuthenticationSession().getAuthNote(
                     EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
-            if (context.getAuthenticationSession().getAuthNote(
-                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null) {
-                // skip sending email code
-                Response challenge = context.form().createForm("mfa-validation.ftl");
-                context.challenge(challenge);
-                return;
-            }
+            // if (context.getAuthenticationSession().getAuthNote(
+            // EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null) {
+            // // skip sending email code
+            // Response challenge = context.form().createForm("mfa-validation.ftl");
+            // context.challenge(challenge);
+            // return;
+            // }
             storeCode(context, code);
 
             if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
@@ -80,7 +82,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 return;
             }
         } else {
-            System.out.println("saknar emial");
+            System.out.println("saknar emaill");
             // The mobile number is NOT configured --> complain
             Response challenge = context.form()
                     .setError("Missing email address")
@@ -200,22 +202,24 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         try {
 
             CloseableHttpClient client = HttpClients.createDefault();
-            HttpPost httpPost = new HttpPost(
-                    "https://email-service.dev-services.svc.cluster.local:8080/email/send-template");
 
-            org.apache.http.entity.StringEntity entity = new org.apache.http.entity.StringEntity(
-                    getJsonstring(email, code));
+            HttpPost httpPost = new HttpPost(
+                    configLoader.getInstance().getProperty("API.URL"));
+
+            String json = getJsonstring(email, code);
+            org.apache.http.entity.StringEntity entity = new org.apache.http.entity.StringEntity(json,
+                    ContentType.APPLICATION_JSON);
             httpPost.setEntity(entity);
             httpPost.setHeader("Accept", "application/json");
             httpPost.setHeader("Content-type", "application/json");
 
             CloseableHttpResponse response = client.execute(httpPost);
             client.close();
-            if (response.getStatusLine().getStatusCode() == 200) {
+            if (response.getStatusLine().getStatusCode() == 201) {
+                logger.info(response.getStatusLine().getReasonPhrase());
                 return true;
-
             } else {
-                logger.error(response);
+                logger.error(response.getStatusLine().getReasonPhrase());
                 return false;
             }
 
