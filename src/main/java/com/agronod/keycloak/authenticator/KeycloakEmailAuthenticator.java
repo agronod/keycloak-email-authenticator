@@ -56,10 +56,6 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
             logger.debug("Using nrOfDigits " + nrOfDigits);
 
-            String code = getCode(nrOfDigits);
-
-            System.out.println(context.getAuthenticationSession().getAuthNote(
-                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
             // if (context.getAuthenticationSession().getAuthNote(
             // EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null) {
             // // skip sending email code
@@ -67,6 +63,12 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             // context.challenge(challenge);
             // return;
             // }
+
+            String code = getCode(nrOfDigits);
+            System.out.println("new code:" + code);
+            System.out.println(context.getAuthenticationSession().getAuthNote(
+                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
+
             storeCode(context, code);
 
             if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
@@ -216,15 +218,15 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             CloseableHttpResponse response = client.execute(httpPost);
             client.close();
             if (response.getStatusLine().getStatusCode() == 201) {
-                logger.info(response.getStatusLine().getReasonPhrase());
+                System.out.println(response.getStatusLine().getReasonPhrase());
                 return true;
             } else {
-                logger.error(response.getStatusLine().getReasonPhrase());
+                System.out.println(response.getStatusLine().getReasonPhrase());
                 return false;
             }
 
         } catch (Exception e) {
-            logger.error("Exception when calling TransactionalEmailsApi#sendTransacEmail" + e);
+            System.out.println("Exception when calling TransactionalEmailsApi#sendTransacEmail" + e);
             return false;
         }
 
