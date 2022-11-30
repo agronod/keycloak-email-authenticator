@@ -252,7 +252,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
         // create a child JSON object
         ObjectNode to = mapper.createObjectNode();
-        // to.put("name", "???");
+        // to.put("name", "???"); //Är dett nödvändigt
         to.put("email", email);
 
         // create `ArrayNode` object
