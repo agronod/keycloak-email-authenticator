@@ -206,9 +206,12 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             CloseableHttpClient client = HttpClients.createDefault();
 
             HttpPost httpPost = new HttpPost(
-                    configLoader.getInstance().getProperty("API.URL"));
+                    "http://email-service.dev-services.svc.cluster.local:8080/email/send-template");
 
             String json = getJsonstring(email, code);
+
+            System.out.println(json);
+
             org.apache.http.entity.StringEntity entity = new org.apache.http.entity.StringEntity(json,
                     ContentType.APPLICATION_JSON);
             httpPost.setEntity(entity);
