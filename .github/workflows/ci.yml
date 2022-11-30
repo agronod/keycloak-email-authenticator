@@ -33,10 +33,10 @@ jobs:
         cache: maven
     - name: Build with Maven prod
       if: ${{ github.ref != 'refs/heads/main' }}
-      run: mvn -Pprod -B package --file pom.xm
+      run: mvn -Pprod -B package --file pom.xml
     - name: Build with Maven dev
       if: ${{ github.ref != 'refs/heads/develop' }}
-      run: mvn -Pdev -B package --file pom.xm
+      run: mvn -Pdev -B package --file pom.xml
     - uses: actions/upload-artifact@v2
       with:
         name: keycklok-email-authentication-jar-with-dependencies
