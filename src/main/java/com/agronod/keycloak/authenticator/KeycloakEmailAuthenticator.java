@@ -1,5 +1,9 @@
 package com.agronod.keycloak.authenticator;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.jboss.logging.Logger;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.AuthenticationFlowError;
@@ -10,8 +14,15 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -43,7 +54,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
             logger.debug("Using nrOfDigits " + nrOfDigits);
 
-            String code = "1111"; // getCode(nrOfDigits);
+            String code = getCode(nrOfDigits);
 
             System.out.println(context.getAuthenticationSession().getAuthNote(
                     EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
@@ -174,55 +185,44 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         logger.debug("close called ...");
     }
 
-    // private String getCode(long nrOfDigits) {
-    // if (nrOfDigits < 1) {
-    // throw new RuntimeException("Nr of digits must be bigger than 0");
-    // }
+    private String getCode(long nrOfDigits) {
+        if (nrOfDigits < 1) {
+            throw new RuntimeException("Nr of digits must be bigger than 0");
+        }
 
-    // double maxValue = Math.pow(10.0, nrOfDigits); // 10 ^ nrOfDigits;
-    // Random r = new Random();
-    // long code = (long) (r.nextFloat() * maxValue);
-    // return Long.toString(code);
-    // }
+        double maxValue = Math.pow(10.0, nrOfDigits); // 10 ^ nrOfDigits;
+        Random r = new Random();
+        long code = (long) (r.nextFloat() * maxValue);
+        return Long.toString(code);
+    }
 
-    private boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
-        return true;
-        // // Send an email ----- Nedanstående kod ska ersättas med anrop till intert
-        // // mail-api.
-        // logger.debug("Sending " + code + " to email address " + email);
+    public boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
+        try {
 
-        // ApiClient defaultClient = Configuration.getDefaultApiClient();
+            CloseableHttpClient client = HttpClients.createDefault();
+            HttpPost httpPost = new HttpPost(
+                    "https://email-service.dev-services.svc.cluster.local:8080/email/send-template");
 
-        // // Configure API key authorization: api-key
-        // ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
-        // apiKey.setApiKey("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");
+            org.apache.http.entity.StringEntity entity = new org.apache.http.entity.StringEntity(
+                    getJsonstring(email, code));
+            httpPost.setEntity(entity);
+            httpPost.setHeader("Accept", "application/json");
+            httpPost.setHeader("Content-type", "application/json");
 
-        // TransactionalEmailsApi apiInstance = new TransactionalEmailsApi();
-        // SendSmtpEmail sendSmtpEmail = new SendSmtpEmail(); // SendSmtpEmail | Values
-        // to send a transactional email
-        // SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        // sender.setEmail("christian@agronod.com");
-        // sender.setName("noreply@agronod.com");
-        // sendSmtpEmail.setSender(sender);
-        // List<SendSmtpEmailTo> toList = new ArrayList<SendSmtpEmailTo>();
-        // SendSmtpEmailTo to = new SendSmtpEmailTo();
-        // to.setEmail(email);
-        // toList.add(to);
-        // sendSmtpEmail.setTo(toList);
-        // sendSmtpEmail.setHtmlContent(
-        // "<html><body><h1>This is my first transactional email kod." + code + "
-        // </h1></body></html>");
-        // sendSmtpEmail.setSubject("Auth. code");
-        // try {
-        // CreateSmtpEmail result = apiInstance.sendTransacEmail(sendSmtpEmail);
-        // logger.debug(result);
-        // return true;
-        // } catch (Exception e) {
-        // logger.error("Exception when calling
-        // TransactionalEmailsApi#sendTransacEmail");
-        // e.printStackTrace();
-        // return false;
-        // }
+            CloseableHttpResponse response = client.execute(httpPost);
+            client.close();
+            if (response.getStatusLine().getStatusCode() == 200) {
+                return true;
+
+            } else {
+                logger.error(response);
+                return false;
+            }
+
+        } catch (Exception e) {
+            logger.error("Exception when calling TransactionalEmailsApi#sendTransacEmail" + e);
+            return false;
+        }
 
     }
 
@@ -238,6 +238,45 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 && timePassedSinceRequest > 1000 * codeActivationDelayInSeconds;
 
         return (codeInput.equalsIgnoreCase(emailedCode) && codeActive);
+
+    }
+
+    private static String getJsonstring(String email, String verificationCode) {
+
+        // create `ObjectMapper` instance
+        ObjectMapper mapper = new ObjectMapper();
+
+        // create a JSON object
+        ObjectNode templateJson = mapper.createObjectNode();
+        templateJson.put("templateId", 1);
+
+        // create a child JSON object
+        ObjectNode to = mapper.createObjectNode();
+        // to.put("name", "???");
+        to.put("email", email);
+
+        // create `ArrayNode` object
+        ArrayNode arrayNode = mapper.createArrayNode();
+
+        // add JSON users to array
+        arrayNode.addAll(Arrays.asList(to));
+
+        // append address to user
+        templateJson.set("to", arrayNode);
+
+        ObjectNode parameters = mapper.createObjectNode();
+        parameters.put("code", verificationCode);
+
+        templateJson.set("parameters", parameters);
+
+        // convert `ObjectNode` to pretty-print JSON
+        try {
+            String jsonStr = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templateJson);
+            return jsonStr;
+        } catch (JsonProcessingException e) {
+            logger.error(e);
+            return null;
+        }
 
     }
 
