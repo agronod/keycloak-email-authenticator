@@ -30,10 +30,10 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven prod
-      if: ${{ github.ref != 'refs/heads/main' }}
+      if: ${{ github.ref == 'refs/heads/main' }}
       run: mvn -Pprod -B package --file pom.xm
     - name: Build with Maven dev
-      if: ${{ github.ref != 'refs/heads/develop' }}
+      if: ${{ github.ref == 'refs/heads/develop' }}
       run: mvn -Pdev -B package --file pom.xm
     - uses: actions/upload-artifact@v2
       with:
