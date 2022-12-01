@@ -52,17 +52,22 @@ public class KeycloakEmailAuthenticator implements Authenticator {
             context.getAuthenticationSession().setAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_USER_EMAIL,
                     context.getUser().getEmail());
 
+            if (context.getAuthenticationSession().getAuthNote(
+                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null &&
+                    isTimestampValid(context.getAuthenticationSession()
+                            .getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_TIMESTAMP),
+                            Integer.parseInt(configLoader.getInstance().getProperty("CODE.VALIDINMIN"), 10),
+                            Integer.parseInt(configLoader.getInstance().getProperty("CODE.ACTIVATIONDELAYINSEC"),
+                                    10))) {
+                // skip sending email code
+                Response challenge = context.form().createForm("mfa-validation.ftl");
+                context.challenge(challenge);
+                return;
+            }
+
             long nrOfDigits = 4; // EmailAuthenticatorUtil.getConfigLong(config,
             // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
             logger.debug("Using nrOfDigits " + nrOfDigits);
-
-            // if (context.getAuthenticationSession().getAuthNote(
-            // EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null) {
-            // // skip sending email code
-            // Response challenge = context.form().createForm("mfa-validation.ftl");
-            // context.challenge(challenge);
-            // return;
-            // }
 
             String code = getCode(nrOfDigits);
             System.out.println("new code:" + code);
@@ -76,7 +81,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 Response challenge = context.form().createForm("mfa-validation.ftl");
                 context.challenge(challenge);
             } else {
-                System.out.println("Email not found");
+                System.out.println("Email could not be sent");
                 Response challenge = context.form()
                         .setError("Email could not be sent.")
                         .createForm("mfa-validation-error.ftl");
@@ -157,8 +162,10 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                     + "    entered code = " + enteredCode);
             if (isValid(enteredCode,
                     context.getAuthenticationSession().getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE),
-                    context.getAuthenticationSession().getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_TIMESTAMP), 5,
-                    2)) {
+                    context.getAuthenticationSession().getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_TIMESTAMP),
+                    Integer.parseInt(configLoader.getInstance().getProperty("CODE.VALIDINMIN"), 10),
+                    Integer.parseInt(configLoader.getInstance().getProperty("CODE.ACTIVATIONDELAYINSEC"),
+                            10))) { // TODO - Ska INVALID användas ??????
                 result = CODE_STATUS.VALID;
             } else {
                 result = CODE_STATUS.INVALID;
@@ -167,6 +174,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         }
         logger.debug("result : " + result);
         return result;
+
     }
 
     public boolean requiresUser() {
@@ -202,11 +210,11 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
     public boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
         try {
+            System.out.println("apiUrl" + configLoader.getInstance().getProperty("API.URL"));
 
             CloseableHttpClient client = HttpClients.createDefault();
 
-            HttpPost httpPost = new HttpPost(
-                    "http://email-service.dev-services.svc.cluster.local:8080/email/send-template");
+            HttpPost httpPost = new HttpPost(configLoader.getInstance().getProperty("API.URL"));
 
             String json = getJsonstring(email, code);
 
@@ -247,6 +255,19 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 && timePassedSinceRequest > 1000 * codeActivationDelayInSeconds;
 
         return (codeInput.equalsIgnoreCase(emailedCode) && codeActive);
+
+    }
+
+    public boolean isTimestampValid(String timeStamp, int timeoutInMinutes,
+            int codeActivationDelayInSeconds) {
+
+        long timePassedSinceRequest = System.currentTimeMillis()
+                - Long.parseLong(timeStamp);
+
+        boolean codeActive = timePassedSinceRequest < 1000 * 60 * timeoutInMinutes
+                && timePassedSinceRequest > 1000 * codeActivationDelayInSeconds;
+
+        return (codeActive);
 
     }
 

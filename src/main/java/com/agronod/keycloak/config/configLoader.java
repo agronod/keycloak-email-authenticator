@@ -1,5 +1,8 @@
 package com.agronod.keycloak.config;
 
+import java.io.File;
+import java.util.Iterator;
+
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
@@ -13,13 +16,24 @@ public class configLoader {
 
     private configLoader() {
         Parameters params = new Parameters();
+        File propertiesFile = new File("emailauthapplication.properties");
+
         FileBasedConfigurationBuilder<FileBasedConfiguration> builder = new FileBasedConfigurationBuilder<FileBasedConfiguration>(
                 PropertiesConfiguration.class)
                 .configure(params.properties()
-                        .setFileName("application.properties"));
+                        .setFile(propertiesFile));
         try {
             configuration = builder.getConfiguration();
+            System.out.println("Config: " + configuration.toString());
+            System.out.println("Config: " + configuration.isEmpty());
+            System.out.println("Config: " + configuration.size());
+            for (Iterator<String> i = configuration.getKeys(); i.hasNext();) {
+                String key = i.next();
+                System.out.println("keys:" + key);
+            }
+
         } catch (ConfigurationException e) {
+            System.out.println(e);
             e.printStackTrace();
         }
     }
@@ -27,6 +41,7 @@ public class configLoader {
     public static synchronized configLoader getInstance() {
         if (instance == null) {
             instance = new configLoader();
+            System.out.println(instance);
         }
         return instance;
     }
