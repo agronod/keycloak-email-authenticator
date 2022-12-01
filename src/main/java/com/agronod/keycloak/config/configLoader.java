@@ -15,6 +15,9 @@ public class configLoader {
     private FileBasedConfiguration configuration;
 
     private configLoader() {
+        ClassLoader moduleClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(PropertiesConfiguration.class.getClassLoader());
+
         Parameters params = new Parameters();
         File propertiesFile = new File("emailauthapplication.properties");
 
@@ -24,13 +27,7 @@ public class configLoader {
                         .setFile(propertiesFile));
         try {
             configuration = builder.getConfiguration();
-            System.out.println("Config: " + configuration.toString());
-            System.out.println("Config: " + configuration.isEmpty());
-            System.out.println("Config: " + configuration.size());
-            for (Iterator<String> i = configuration.getKeys(); i.hasNext();) {
-                String key = i.next();
-                System.out.println("keys:" + key);
-            }
+            Thread.currentThread().setContextClassLoader(moduleClassLoader);
 
         } catch (ConfigurationException e) {
             System.out.println(e);
