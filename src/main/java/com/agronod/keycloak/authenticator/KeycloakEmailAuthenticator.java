@@ -48,6 +48,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         if (context.getUser().getEmail() != null) {
             // The email address exists for current user
             System.out.println(context.getUser().getEmail());
+
             // store email on authsession
             context.getAuthenticationSession().setAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_USER_EMAIL,
                     context.getUser().getEmail());
@@ -64,36 +65,13 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 context.challenge(challenge);
                 return;
             }
-
-            long nrOfDigits = 4; // EmailAuthenticatorUtil.getConfigLong(config,
-            // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
-            logger.debug("Using nrOfDigits " + nrOfDigits);
-
-            String code = getCode(nrOfDigits);
-            System.out.println("new code:" + code);
-            System.out.println(context.getAuthenticationSession().getAuthNote(
-                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
-
-            storeCode(context, code);
-
-            if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
-                System.out.println("Email sent");
-                Response challenge = context.form().createForm("mfa-validation.ftl");
-                context.challenge(challenge);
-            } else {
-                System.out.println("Email could not be sent");
-                Response challenge = context.form()
-                        .setError("Email could not be sent.")
-                        .createForm("mfa-validation-error.ftl");
-                context.failureChallenge(AuthenticationFlowError.INTERNAL_ERROR, challenge);
-                return;
-            }
+            storeAndSendCode(context);
         } else {
-            System.out.println("saknar emaill");
+            System.out.println("User is missing email address");
             // The mobile number is NOT configured --> complain
             Response challenge = context.form()
-                    .setError("Missing email address")
-                    .createForm("mfa-validation-error.ftl");
+                    .setError("E-postadress saknas")
+                    .createForm("mfa-validation.ftl");
             context.failureChallenge(AuthenticationFlowError.CLIENT_CREDENTIALS_SETUP_REQUIRED, challenge);
             return;
         }
@@ -101,16 +79,23 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
     public void action(AuthenticationFlowContext context) {
         logger.debug("action called ... context = " + context);
+
+        MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
+
+        if (formData.containsKey("SendNewCode")) {
+            storeAndSendCode(context);
+            return;
+        }
+
         CODE_STATUS status = validateCode(context);
         Response challenge = null;
         switch (status) {
             case EXPIRED:
                 challenge = context.form()
-                        .setError("code is expired")
+                        .setError("Koden är inte längre giltig")
                         .createForm("mfa-validation.ftl");
                 context.failureChallenge(AuthenticationFlowError.EXPIRED_CODE, challenge);
                 break;
-
             case INVALID:
                 if (context.getExecution().getRequirement() == AuthenticationExecutionModel.Requirement.ALTERNATIVE ||
                         context.getExecution()
@@ -121,8 +106,8 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                         .getRequirement() == AuthenticationExecutionModel.Requirement.REQUIRED) {
                     System.out.println("bad code");
                     challenge = context.form()
-                            .setError("badCode")
-                            .createForm("mfa-validation-error.ftl");
+                            .setError("Fel verifieringskod")
+                            .createForm("mfa-validation.ftl");
                     context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challenge);
                 } else {
                     // Something strange happened
@@ -135,6 +120,34 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 break;
 
         }
+    }
+
+    private void storeAndSendCode(AuthenticationFlowContext context) {
+
+        long nrOfDigits = 4; // EmailAuthenticatorUtil.getConfigLong(config,
+        // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
+        logger.debug("Using nrOfDigits " + nrOfDigits);
+
+        String code = getCode(nrOfDigits);
+        System.out.println("new code:" + code);
+        System.out.println(context.getAuthenticationSession().getAuthNote(
+                EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
+
+        storeCode(context, code);
+
+        if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
+            System.out.println("Email sent");
+            Response challenge = context.form().createForm("mfa-validation.ftl");
+            context.challenge(challenge);
+        } else {
+            System.out.println("Email could not be sent");
+            Response challenge = context.form()
+                    .setError("E-post kund inte skickas.")
+                    .createForm("mfa-validation.ftl");
+            context.failureChallenge(AuthenticationFlowError.INTERNAL_ERROR, challenge);
+            return;
+        }
+
     }
 
     // Store the code + expiration time in a UserCredential. Keycloak will persist
