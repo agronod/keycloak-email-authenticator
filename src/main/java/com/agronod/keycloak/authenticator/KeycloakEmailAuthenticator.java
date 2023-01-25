@@ -1,5 +1,10 @@
 package com.agronod.keycloak.authenticator;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.jboss.logging.Logger;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.AuthenticationFlowError;
@@ -10,8 +15,16 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import com.agronod.keycloak.config.configLoader;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -35,45 +48,30 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         if (context.getUser().getEmail() != null) {
             // The email address exists for current user
             System.out.println(context.getUser().getEmail());
+
             // store email on authsession
             context.getAuthenticationSession().setAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_USER_EMAIL,
                     context.getUser().getEmail());
 
-            long nrOfDigits = 4; // EmailAuthenticatorUtil.getConfigLong(config,
-            // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
-            logger.debug("Using nrOfDigits " + nrOfDigits);
-
-            String code = "1111"; // getCode(nrOfDigits);
-
-            System.out.println(context.getAuthenticationSession().getAuthNote(
-                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
             if (context.getAuthenticationSession().getAuthNote(
-                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null) {
+                    EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE) != null &&
+                    isTimestampValid(context.getAuthenticationSession()
+                            .getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_TIMESTAMP),
+                            Integer.parseInt(configLoader.getInstance().getProperty("CODE.VALIDINMIN"), 10),
+                            Integer.parseInt(configLoader.getInstance().getProperty("CODE.ACTIVATIONDELAYINSEC"),
+                                    10))) {
                 // skip sending email code
                 Response challenge = context.form().createForm("mfa-validation.ftl");
                 context.challenge(challenge);
                 return;
             }
-            storeCode(context, code);
-
-            if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
-                System.out.println("Email sent");
-                Response challenge = context.form().createForm("mfa-validation.ftl");
-                context.challenge(challenge);
-            } else {
-                System.out.println("Email not found");
-                Response challenge = context.form()
-                        .setError("Email could not be sent.")
-                        .createForm("mfa-validation-error.ftl");
-                context.failureChallenge(AuthenticationFlowError.INTERNAL_ERROR, challenge);
-                return;
-            }
+            storeAndSendCode(context);
         } else {
-            System.out.println("saknar emial");
+            System.out.println("User is missing email address");
             // The mobile number is NOT configured --> complain
             Response challenge = context.form()
-                    .setError("Missing email address")
-                    .createForm("mfa-validation-error.ftl");
+                    .setError("E-postadress saknas")
+                    .createForm("mfa-validation.ftl");
             context.failureChallenge(AuthenticationFlowError.CLIENT_CREDENTIALS_SETUP_REQUIRED, challenge);
             return;
         }
@@ -81,16 +79,23 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
     public void action(AuthenticationFlowContext context) {
         logger.debug("action called ... context = " + context);
+
+        MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
+
+        if (formData.containsKey("SendNewCode")) {
+            storeAndSendCode(context);
+            return;
+        }
+
         CODE_STATUS status = validateCode(context);
         Response challenge = null;
         switch (status) {
             case EXPIRED:
                 challenge = context.form()
-                        .setError("code is expired")
+                        .setError("Koden är inte längre giltig")
                         .createForm("mfa-validation.ftl");
                 context.failureChallenge(AuthenticationFlowError.EXPIRED_CODE, challenge);
                 break;
-
             case INVALID:
                 if (context.getExecution().getRequirement() == AuthenticationExecutionModel.Requirement.ALTERNATIVE ||
                         context.getExecution()
@@ -101,8 +106,8 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                         .getRequirement() == AuthenticationExecutionModel.Requirement.REQUIRED) {
                     System.out.println("bad code");
                     challenge = context.form()
-                            .setError("badCode")
-                            .createForm("mfa-validation-error.ftl");
+                            .setError("Fel verifieringskod")
+                            .createForm("mfa-validation.ftl");
                     context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challenge);
                 } else {
                     // Something strange happened
@@ -115,6 +120,34 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 break;
 
         }
+    }
+
+    private void storeAndSendCode(AuthenticationFlowContext context) {
+
+        long nrOfDigits = 4; // EmailAuthenticatorUtil.getConfigLong(config,
+        // EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH, 4L);
+        logger.debug("Using nrOfDigits " + nrOfDigits);
+
+        String code = getCode(nrOfDigits);
+        System.out.println("new code:" + code);
+        System.out.println(context.getAuthenticationSession().getAuthNote(
+                EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
+
+        storeCode(context, code);
+
+        if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
+            System.out.println("Email sent");
+            Response challenge = context.form().createForm("mfa-validation.ftl");
+            context.challenge(challenge);
+        } else {
+            System.out.println("Email could not be sent");
+            Response challenge = context.form()
+                    .setError("E-post kund inte skickas.")
+                    .createForm("mfa-validation.ftl");
+            context.failureChallenge(AuthenticationFlowError.INTERNAL_ERROR, challenge);
+            return;
+        }
+
     }
 
     // Store the code + expiration time in a UserCredential. Keycloak will persist
@@ -142,8 +175,10 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                     + "    entered code = " + enteredCode);
             if (isValid(enteredCode,
                     context.getAuthenticationSession().getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE),
-                    context.getAuthenticationSession().getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_TIMESTAMP), 5,
-                    2)) {
+                    context.getAuthenticationSession().getAuthNote(EmailAuthenticatorContstants.AUTH_NOTE_TIMESTAMP),
+                    Integer.parseInt(configLoader.getInstance().getProperty("CODE.VALIDINMIN"), 10),
+                    Integer.parseInt(configLoader.getInstance().getProperty("CODE.ACTIVATIONDELAYINSEC"),
+                            10))) { // TODO - Ska INVALID användas ??????
                 result = CODE_STATUS.VALID;
             } else {
                 result = CODE_STATUS.INVALID;
@@ -152,6 +187,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         }
         logger.debug("result : " + result);
         return result;
+
     }
 
     public boolean requiresUser() {
@@ -174,55 +210,49 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         logger.debug("close called ...");
     }
 
-    // private String getCode(long nrOfDigits) {
-    // if (nrOfDigits < 1) {
-    // throw new RuntimeException("Nr of digits must be bigger than 0");
-    // }
+    private String getCode(long nrOfDigits) {
+        if (nrOfDigits < 1) {
+            throw new RuntimeException("Nr of digits must be bigger than 0");
+        }
 
-    // double maxValue = Math.pow(10.0, nrOfDigits); // 10 ^ nrOfDigits;
-    // Random r = new Random();
-    // long code = (long) (r.nextFloat() * maxValue);
-    // return Long.toString(code);
-    // }
+        double maxValue = Math.pow(10.0, nrOfDigits); // 10 ^ nrOfDigits;
+        Random r = new Random();
+        long code = (long) (r.nextFloat() * maxValue);
+        return Long.toString(code);
+    }
 
-    private boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
-        return true;
-        // // Send an email ----- Nedanstående kod ska ersättas med anrop till intert
-        // // mail-api.
-        // logger.debug("Sending " + code + " to email address " + email);
+    public boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
+        try {
+            System.out.println("apiUrl" + configLoader.getInstance().getProperty("API.URL"));
 
-        // ApiClient defaultClient = Configuration.getDefaultApiClient();
+            CloseableHttpClient client = HttpClients.createDefault();
 
-        // // Configure API key authorization: api-key
-        // ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
-        // apiKey.setApiKey("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");
+            HttpPost httpPost = new HttpPost(configLoader.getInstance().getProperty("API.URL"));
 
-        // TransactionalEmailsApi apiInstance = new TransactionalEmailsApi();
-        // SendSmtpEmail sendSmtpEmail = new SendSmtpEmail(); // SendSmtpEmail | Values
-        // to send a transactional email
-        // SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        // sender.setEmail("christian@agronod.com");
-        // sender.setName("noreply@agronod.com");
-        // sendSmtpEmail.setSender(sender);
-        // List<SendSmtpEmailTo> toList = new ArrayList<SendSmtpEmailTo>();
-        // SendSmtpEmailTo to = new SendSmtpEmailTo();
-        // to.setEmail(email);
-        // toList.add(to);
-        // sendSmtpEmail.setTo(toList);
-        // sendSmtpEmail.setHtmlContent(
-        // "<html><body><h1>This is my first transactional email kod." + code + "
-        // </h1></body></html>");
-        // sendSmtpEmail.setSubject("Auth. code");
-        // try {
-        // CreateSmtpEmail result = apiInstance.sendTransacEmail(sendSmtpEmail);
-        // logger.debug(result);
-        // return true;
-        // } catch (Exception e) {
-        // logger.error("Exception when calling
-        // TransactionalEmailsApi#sendTransacEmail");
-        // e.printStackTrace();
-        // return false;
-        // }
+            String json = getJsonstring(email, code);
+
+            System.out.println(json);
+
+            org.apache.http.entity.StringEntity entity = new org.apache.http.entity.StringEntity(json,
+                    ContentType.APPLICATION_JSON);
+            httpPost.setEntity(entity);
+            httpPost.setHeader("Accept", "application/json");
+            httpPost.setHeader("Content-type", "application/json");
+
+            CloseableHttpResponse response = client.execute(httpPost);
+            client.close();
+            if (response.getStatusLine().getStatusCode() == 201) {
+                System.out.println(response.getStatusLine().getReasonPhrase());
+                return true;
+            } else {
+                System.out.println(response.getStatusLine().getReasonPhrase());
+                return false;
+            }
+
+        } catch (Exception e) {
+            System.out.println("Exception when calling TransactionalEmailsApi#sendTransacEmail" + e);
+            return false;
+        }
 
     }
 
@@ -238,6 +268,58 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 && timePassedSinceRequest > 1000 * codeActivationDelayInSeconds;
 
         return (codeInput.equalsIgnoreCase(emailedCode) && codeActive);
+
+    }
+
+    public boolean isTimestampValid(String timeStamp, int timeoutInMinutes,
+            int codeActivationDelayInSeconds) {
+
+        long timePassedSinceRequest = System.currentTimeMillis()
+                - Long.parseLong(timeStamp);
+
+        boolean codeActive = timePassedSinceRequest < 1000 * 60 * timeoutInMinutes
+                && timePassedSinceRequest > 1000 * codeActivationDelayInSeconds;
+
+        return (codeActive);
+
+    }
+
+    private static String getJsonstring(String email, String verificationCode) {
+
+        // create `ObjectMapper` instance
+        ObjectMapper mapper = new ObjectMapper();
+
+        // create a JSON object
+        ObjectNode templateJson = mapper.createObjectNode();
+        templateJson.put("templateId", 1);
+
+        // create a child JSON object
+        ObjectNode to = mapper.createObjectNode();
+        // to.put("name", "???"); //Är dett nödvändigt
+        to.put("email", email);
+
+        // create `ArrayNode` object
+        ArrayNode arrayNode = mapper.createArrayNode();
+
+        // add JSON users to array
+        arrayNode.addAll(Arrays.asList(to));
+
+        // append address to user
+        templateJson.set("to", arrayNode);
+
+        ObjectNode parameters = mapper.createObjectNode();
+        parameters.put("code", verificationCode);
+
+        templateJson.set("parameters", parameters);
+
+        // convert `ObjectNode` to pretty-print JSON
+        try {
+            String jsonStr = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templateJson);
+            return jsonStr;
+        } catch (JsonProcessingException e) {
+            logger.error(e);
+            return null;
+        }
 
     }
 
