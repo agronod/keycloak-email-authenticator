@@ -134,8 +134,9 @@ public class KeycloakEmailAuthenticator implements Authenticator {
                 EmailAuthenticatorContstants.AUTH_NOTE_EMAIL_CODE));
 
         storeCode(context, code);
-
-        if (sendCode(context.getUser().getEmail(), code, context.getAuthenticatorConfig())) {
+        String name = context.getUser().getFirstName() + " " + context.getUser().getLastName();
+        
+        if (sendCode(context.getUser().getEmail(), code, name, context.getAuthenticatorConfig())) {
             System.out.println("Email sent");
             Response challenge = context.form().createForm("mfa-validation.ftl");
             context.challenge(challenge);
@@ -221,7 +222,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
         return Long.toString(code);
     }
 
-    public boolean sendCode(String email, String code, AuthenticatorConfigModel config) {
+    public boolean sendCode(String email, String code, String name, AuthenticatorConfigModel config) {
         try {
             System.out.println("apiUrl" + configLoader.getInstance().getProperty("API.URL"));
 
@@ -229,7 +230,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
             HttpPost httpPost = new HttpPost(configLoader.getInstance().getProperty("API.URL"));
 
-            String json = getJsonstring(email, code);
+            String json = getJsonstring(email, code, name);
 
             System.out.println(json);
 
@@ -284,18 +285,18 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
     }
 
-    private static String getJsonstring(String email, String verificationCode) {
+    private static String getJsonstring(String email, String verificationCode, String name) {
 
         // create `ObjectMapper` instance
         ObjectMapper mapper = new ObjectMapper();
 
         // create a JSON object
         ObjectNode templateJson = mapper.createObjectNode();
-        templateJson.put("templateId", 1);
+        templateJson.put("templateId", 13);
 
         // create a child JSON object
         ObjectNode to = mapper.createObjectNode();
-        // to.put("name", "???"); //Är dett nödvändigt
+        to.put("name", name);
         to.put("email", email);
 
         // create `ArrayNode` object
@@ -309,6 +310,7 @@ public class KeycloakEmailAuthenticator implements Authenticator {
 
         ObjectNode parameters = mapper.createObjectNode();
         parameters.put("code", verificationCode);
+        parameters.put("namn", name);
 
         templateJson.set("parameters", parameters);
 
