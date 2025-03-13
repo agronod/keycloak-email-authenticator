@@ -76,7 +76,7 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "PRERELEASE=true" >> $GITHUB_ENV
-            echo "PRE_RELEASE_BRANCHES=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "PRE_RELEASE_BRANCHES=${{ github.base_ref }}" >> $GITHUB_ENV
             echo "APPEND_TAG=-${{ github.base_ref }}-pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
           else
             echo "PRERELEASE=false" >> $GITHUB_ENV
