@@ -74,6 +74,7 @@ jobs:
       - uses: mathieudutour/github-tag-action@v6.0
         id: tag_version
         with:
+          dry_run: ${{ github.event_name == 'pull_request' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: softprops/action-gh-release@v1
