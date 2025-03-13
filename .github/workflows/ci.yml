@@ -77,11 +77,13 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "PRERELEASE=true" >> $GITHUB_ENV
             echo "PRE_RELEASE_BRANCHES=${{ github.base_ref }}" >> $GITHUB_ENV
-            echo "APPEND_TAG=-${{ github.base_ref }}-pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "APPEND_TAG=-pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "RELEASE_BRANCHES=" >> $GITHUB_ENV  # Ensure main releases aren't triggered
           else
             echo "PRERELEASE=false" >> $GITHUB_ENV
             echo "PRE_RELEASE_BRANCHES=" >> $GITHUB_ENV
             echo "APPEND_TAG=" >> $GITHUB_ENV
+            echo "RELEASE_BRANCHES=main,develop" >> $GITHUB_ENV  # Normal release branches
           fi
 
       - uses: mathieudutour/github-tag-action@v6.0
@@ -89,6 +91,12 @@ jobs:
         with:
           pre_release_branches: ${{ env.PRE_RELEASE_BRANCHES }}
           append_to_pre_release_tag: ${{ env.APPEND_TAG }}
+          release_branches: ${{ env.RELEASE_BRANCHES }}
+          default_prerelease_bump: prerelease
+          default_bump: patch
+          tag_prefix: v
+          create_annotated_tag: false
+          fetch_all_tags: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: softprops/action-gh-release@v1
