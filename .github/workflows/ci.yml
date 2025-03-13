@@ -77,13 +77,13 @@ jobs:
           dry_run: ${{ github.event_name == 'pull_request' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: softprops/action-gh-release@v1
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          tag: ${{ steps.tag_version.outputs.new_tag }}
           name: Release ${{ steps.tag_version.outputs.new_tag }}
           body: ${{ steps.tag_version.outputs.changelog }}
-          files: |
+          artifacts: |
             jars/keycklok-email-authentication-jar-with-dependencies.jar
           prerelease: ${{ github.event_name == 'pull_request' }}
-        env:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
