@@ -1,0 +1,11 @@
+{
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "java.format.enabled": true,
+    "java.format.settings.url": "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml",
+    "java.format.settings.profile": "GoogleStyle",
+    "java.codeGeneration.hashCodeEquals.useInstanceof": true,
+    "java.codeGeneration.toString.template": "${object.className} {${member.name()}=${member.value}, ${otherMembers}}",
+    "java.codeGeneration.useBlocks": true
+}
