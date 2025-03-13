@@ -71,22 +71,9 @@ jobs:
 
       - run: mv downloaded-artifact/keycklok-email-authentication-jar-with-dependencies.jar jars/keycklok-email-authentication-jar-with-dependencies.jar
 
-      - name: Determine Release or Pre-Release
-        id: set_release_type
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "PRERELEASE=true" >> $GITHUB_ENV
-            echo "APPEND_TAG=-pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
-          else
-            echo "PRERELEASE=false" >> $GITHUB_ENV
-            echo "APPEND_TAG=" >> $GITHUB_ENV
-          fi
-
       - uses: mathieudutour/github-tag-action@v6.0
         id: tag_version
         with:
-          append_to_pre_release_tag: ${{ env.APPEND_TAG }}
-          pre_release_branches: "develop,feat*,fix*"
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: softprops/action-gh-release@v1
@@ -96,6 +83,6 @@ jobs:
           body: ${{ steps.tag_version.outputs.changelog }}
           files: |
             jars/keycklok-email-authentication-jar-with-dependencies.jar
-          prerelease: ${{ env.PRERELEASE }}
+          prerelease: ${{ github.event_name == 'pull_request' }}
         env:
           github_token: ${{ secrets.GITHUB_TOKEN }}
