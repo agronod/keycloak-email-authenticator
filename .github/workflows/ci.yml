@@ -30,13 +30,30 @@ jobs:
           java-version: "17"
           distribution: "temurin"
           cache: maven
-      - name: Build with Maven prod
-        if: ${{ github.ref == 'refs/heads/main' }}
-        run: mvn -Pprod -B package --file pom.xml
-      - name: Build with Maven dev
-        if: ${{ github.ref == 'refs/heads/develop' }}
-        run: mvn -Pdev -B package --file pom.xml
-      - uses: actions/upload-artifact@v2
+
+      - name: Determine Build Profile
+        id: set-profile
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Use the target branch for PRs
+            TARGET_BRANCH="${{ github.base_ref }}"
+          else
+            # Use the current branch for normal commits
+            TARGET_BRANCH="${{ github.ref_name }}"
+          fi
+
+          if [[ "$TARGET_BRANCH" == "main" ]]; then
+            echo "PROFILE=prod" >> $GITHUB_ENV
+          elif [[ "$TARGET_BRANCH" == "develop" ]]; then
+            echo "PROFILE=dev" >> $GITHUB_ENV
+          else
+            echo "PROFILE=dev" >> $GITHUB_ENV  # Default to dev for other branches
+          fi
+
+      - name: Build with Maven
+        run: mvn -P${{ env.PROFILE }} -B package --file pom.xml
+
+      - uses: actions/upload-artifact@v4
         with:
           name: keycklok-email-authentication-jar-with-dependencies
           path: target/keycklok-email-authentication-jar-with-dependencies.jar
@@ -45,15 +62,35 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
+        with:
+          name: keycklok-email-authentication-jar-with-dependencies
+          path: downloaded-artifact
+
       - run: mkdir jars
-      - run: mv /home/runner/work/keycloak-email-authenticator/keycloak-email-authenticator/keycklok-email-authentication-jar-with-dependencies/keycklok-email-authentication-jar-with-dependencies.jar jars/keycklok-email-authentication-jar-with-dependencies.jar
+
+      - run: mv downloaded-artifact/keycklok-email-authentication-jar-with-dependencies.jar jars/keycklok-email-authentication-jar-with-dependencies.jar
+
+      - name: Determine Release or Pre-Release
+        id: set_release_type
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "PRERELEASE=true" >> $GITHUB_ENV
+            echo "PRE_RELEASE_BRANCHES=${{ github.base_ref }}" >> $GITHUB_ENV
+            echo "RELEASE_BRANCHES=" >> $GITHUB_ENV
+          else
+            echo "PRERELEASE=false" >> $GITHUB_ENV
+            echo "PRE_RELEASE_BRANCHES=" >> $GITHUB_ENV
+            echo "RELEASE_BRANCHES=main,develop" >> $GITHUB_ENV
+          fi
+
       - uses: mathieudutour/github-tag-action@v6.0
         id: tag_version
         with:
-          # pre_release_branches: develop
-          # append_to_pre_release_tag: prerelease
+          release_branches: ${{ env.RELEASE_BRANCHES }}
+          pre_release_branches: ${{ env.PRE_RELEASE_BRANCHES }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
@@ -61,5 +98,6 @@ jobs:
           body: ${{ steps.tag_version.outputs.changelog }}
           files: |
             jars/keycklok-email-authentication-jar-with-dependencies.jar
+          prerelease: ${{ env.PRERELEASE }}
         env:
           github_token: ${{ secrets.GITHUB_TOKEN }}
