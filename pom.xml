@@ -8,11 +8,13 @@
     <artifactId>keycloak-email-authenticator</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
+
     <properties>
         <java.version>11</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.keycloak</groupId>
@@ -49,10 +51,12 @@
             <version>4.5</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Updated Jackson dependency -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.10.0</version>
+            <version>2.13.3</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -73,37 +77,42 @@
     </dependencies>
 
     <build>
-    <resources>
+        <resources>
             <resource>
                 <directory>src/main/resources-${env}</directory>
             </resource>
         </resources>
-    <finalName>keycklok-email-authentication</finalName>
-    <plugins>
-        <!-- other Maven plugins ... -->
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <version>3.1.1</version>
-            <configuration>
-                <descriptorRefs>
-                    <descriptorRef>jar-with-dependencies</descriptorRef>
-                </descriptorRefs>
-            </configuration>
-            <executions>
-                <execution>
-                    <id>make-assembly</id>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>single</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-</build>
+        <finalName>keycklok-email-authentication</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <!-- Exclude provided dependencies by only including runtime scoped ones -->
+                    <dependencySets>
+                        <dependencySet>
+                            <scope>runtime</scope>
+                        </dependencySet>
+                    </dependencySets>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
-<profiles>
+    <profiles>
         <profile>
             <id>dev</id>
             <properties>
@@ -117,6 +126,7 @@
             </properties>
         </profile>
     </profiles>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -134,44 +144,31 @@
                 <artifactId>jackson-core</artifactId>
                 <version>2.13.3</version>
             </dependency>
-
-
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
                 <version>2.13.3</version>
             </dependency>
-
-
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>2.13.3</version>
             </dependency>
-
-
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
                 <version>3.5.0</version>
             </dependency>
-
-
             <dependency>
                 <groupId>org.jboss.logging</groupId>
                 <artifactId>jboss-logging</artifactId>
                 <version>3.4.1.Final</version>
             </dependency>
-
-        
-
             <dependency>
                 <groupId>com.squareup.okio</groupId>
                 <artifactId>okio</artifactId>
                 <version>1.6.0</version>
             </dependency>
-
         </dependencies>
-
     </dependencyManagement>
 </project>
