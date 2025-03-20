@@ -32,9 +32,22 @@ public class KeycloakEmailAuthenticatorFactory implements AuthenticatorFactory {
             new ArrayList<ProviderConfigProperty>();
 
     static {
-        ProviderConfigProperty property;
+        ProviderConfigProperty property = new ProviderConfigProperty();
+        property.setName(EmailAuthenticatorContstants.CODE_VALIDINMIN);
+        property.setLabel("Email Code Validity (minutes)");
+        property.setType(ProviderConfigProperty.STRING_TYPE);
+        property.setDefaultValue("5"); // Set default to 5 minutes
+        property.setHelpText("The validity period of the email code in minutes.");
+        configProperties.add(property);
 
-        // API URL
+        property = new ProviderConfigProperty();
+        property.setName(EmailAuthenticatorContstants.CODE_ACTIVATIONDELAYINSEC);
+        property.setLabel("Activation Delay (seconds)");
+        property.setType(ProviderConfigProperty.STRING_TYPE);
+        property.setDefaultValue("2"); // Set default to 2 seconds
+        property.setHelpText("Delay in seconds before the email code becomes active.");
+        configProperties.add(property);
+
         property = new ProviderConfigProperty();
         property.setName(EmailAuthenticatorContstants.API_URL);
         property.setLabel("API URL");
