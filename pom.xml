@@ -83,7 +83,7 @@
                 <directory>src/main/resources</directory>
             </resource>
         </resources>
-        <finalName>keycklok-email-authentication</finalName>
+        <finalName>keycloak-email-authentication</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

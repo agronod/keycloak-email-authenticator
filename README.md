@@ -12,7 +12,7 @@ mvn clean package && docker remove keycloak ~; docker run --name keycloak \
   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
   -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
   -e KEYCLOAK_LOGLEVEL=DEBUG \
-  -v "$(pwd)/target/keycklok-email-authentication-jar-with-dependencies.jar:/opt/keycloak/providers/keycklok-email-authentication-jar-with-dependencies.jar" \
+  -v "$(pwd)/target/keycloak-email-authentication-jar-with-dependencies.jar:/opt/keycloak/providers/keycloak-email-authentication-jar-with-dependencies.jar" \
   quay.io/keycloak/keycloak:26.0.0 \
   start-dev
 ```
