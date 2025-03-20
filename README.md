@@ -2,6 +2,10 @@
 
 ## Test locally
 
+Requires
+    - OpenJDK 21 or higher
+    - maven
+
 ```bash
 mvn clean package && docker remove keycloak ~; docker run --name keycloak \
   -p 8080:8080 \
