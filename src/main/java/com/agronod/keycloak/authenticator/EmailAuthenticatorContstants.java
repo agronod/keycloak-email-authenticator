@@ -7,10 +7,7 @@ public class EmailAuthenticatorContstants {
     public static final String ANSW_EMAIL_CODE = "user.attributes.code";
 
     // Configurable fields
-
-    public static final String CONF_PRP_EMAIL_CODE_TTL = "email-auth.code.ttl";
-    public static final String CONF_PRP_EMAIL_CODE_LENGTH = "email-auth.code.length";
-    public static final String CONF_PRP_EMAIL_ACTIVA_SEC = "email-auth.code.acttime";
+    public static final String API_URL = "api.url";
 
     // email spec codes
     public static final String AUTH_NOTE_USER_EMAIL = "user-email";
