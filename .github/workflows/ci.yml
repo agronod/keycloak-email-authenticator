@@ -31,27 +31,8 @@ jobs:
           distribution: "temurin"
           cache: maven
 
-      - name: Determine Build Profile
-        id: set-profile
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # Use the target branch for PRs
-            TARGET_BRANCH="${{ github.base_ref }}"
-          else
-            # Use the current branch for normal commits
-            TARGET_BRANCH="${{ github.ref_name }}"
-          fi
-
-          if [[ "$TARGET_BRANCH" == "main" ]]; then
-            echo "PROFILE=prod" >> $GITHUB_ENV
-          elif [[ "$TARGET_BRANCH" == "develop" ]]; then
-            echo "PROFILE=dev" >> $GITHUB_ENV
-          else
-            echo "PROFILE=dev" >> $GITHUB_ENV  # Default to dev for other branches
-          fi
-
       - name: Build with Maven
-        run: mvn -P${{ env.PROFILE }} -B package --file pom.xml
+        run: mvn -B package --file pom.xml
 
       - uses: actions/upload-artifact@v4
         with:

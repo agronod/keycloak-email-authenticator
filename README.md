@@ -3,7 +3,7 @@
 ## Test locally
 
 ```bash
-mvn clean package -Pdev && docker remove keycloak ~; docker run --name keycloak \
+mvn clean package && docker remove keycloak ~; docker run --name keycloak \
   -p 8080:8080 \
   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
   -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
