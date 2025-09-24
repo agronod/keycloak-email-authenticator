@@ -23,36 +23,36 @@ public class KeycloakEmailAuthenticatorFactory implements AuthenticatorFactory {
     private static Logger logger = Logger.getLogger(KeycloakEmailAuthenticatorFactory.class);
     private static final KeycloakEmailAuthenticator SINGLETON = new KeycloakEmailAuthenticator();
 
-    public static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
-            AuthenticationExecutionModel.Requirement.REQUIRED,
-            AuthenticationExecutionModel.Requirement.ALTERNATIVE,
-            AuthenticationExecutionModel.Requirement.DISABLED };
+    public static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES =
+            {AuthenticationExecutionModel.Requirement.REQUIRED,
+                    AuthenticationExecutionModel.Requirement.ALTERNATIVE,
+                    AuthenticationExecutionModel.Requirement.DISABLED};
 
-    private static final List<ProviderConfigProperty> configProperties = new ArrayList<ProviderConfigProperty>();
+    private static final List<ProviderConfigProperty> configProperties =
+            new ArrayList<ProviderConfigProperty>();
 
     static {
-        ProviderConfigProperty property;
-
-        // EMAIL Code
-        property = new ProviderConfigProperty();
-        property.setName(EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_TTL);
-        property.setLabel("EMAIL code time to live");
+        ProviderConfigProperty property = new ProviderConfigProperty();
+        property.setName(EmailAuthenticatorContstants.CODE_VALIDINMIN);
+        property.setLabel("Email Code Validity (minutes)");
         property.setType(ProviderConfigProperty.STRING_TYPE);
-        property.setHelpText("The validity of the sent code in minutes.");
+        property.setDefaultValue("5"); // Set default to 5 minutes
+        property.setHelpText("The validity period of the email code in minutes.");
         configProperties.add(property);
 
         property = new ProviderConfigProperty();
-        property.setName(EmailAuthenticatorContstants.CONF_PRP_EMAIL_CODE_LENGTH);
-        property.setLabel("Length of the email code");
+        property.setName(EmailAuthenticatorContstants.CODE_ACTIVATIONDELAYINSEC);
+        property.setLabel("Activation Delay (seconds)");
         property.setType(ProviderConfigProperty.STRING_TYPE);
-        property.setHelpText("Length of the email code.");
+        property.setDefaultValue("2"); // Set default to 2 seconds
+        property.setHelpText("Delay in seconds before the email code becomes active.");
         configProperties.add(property);
 
-        // ACtivation delay i sec
         property = new ProviderConfigProperty();
-        property.setName(EmailAuthenticatorContstants.CONF_PRP_EMAIL_ACTIVA_SEC);
-        property.setLabel("Code activation delay in seconds");
+        property.setName(EmailAuthenticatorContstants.API_URL);
+        property.setLabel("API URL");
         property.setType(ProviderConfigProperty.STRING_TYPE);
+        property.setHelpText("The URL of the API to send the email code.");
         configProperties.add(property);
     }
 

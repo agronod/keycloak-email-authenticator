@@ -1,6 +1,23 @@
 # keycloak-sms-authenticator
 
-To install the EMAIL Authenticator:
+## Test locally
+
+Requires
+    - OpenJDK 21 or higher
+    - maven
+
+```bash
+mvn clean package && docker remove keycloak ~; docker run --name keycloak \
+  -p 8080:8080 \
+  -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+  -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+  -e KEYCLOAK_LOGLEVEL=DEBUG \
+  -v "$(pwd)/target/keycloak-email-authentication-jar-with-dependencies.jar:/opt/keycloak/providers/keycloak-email-authentication-jar-with-dependencies.jar" \
+  quay.io/keycloak/keycloak:26.0.0 \
+  start-dev
+```
+
+## Installation
 
 * Add the jar to the Keycloak server:
   * `$ cp target/keycloak-email-authenticator.jar _KEYCLOAK_HOME_/providers/`
@@ -11,10 +28,12 @@ Configure your REALM to use the EMAIL Authentication.
 First create a new REALM (or select a previously created REALM).
 
 Under Authentication > Flows:
+
 * Copy 'Browse' flow to 'Browser with Email' flow
 * Click on 'Actions > Add execution on the 'Browser with Email Forms' line and add the 'EMAIL Authentication'
 * Set 'Email Authentication' to 'REQUIRED' or 'ALTERNATIVE'
 * To configure the Email Authenticator, click on Actions  Config and fill in the attributes.
 
 Under Authentication > Bindings:
+
 * Select 'Browser with EMAIL' as the 'Browser Flow' for the REALM.
